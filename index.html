@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小遊戲測試版 v1.0</title>
+    <style>
+        body { margin: 0; font-family: 'PingFang TC', sans-serif; background: #fff5f7; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        #game-container { text-align: center; }
+        #target { width: 100px; height: 100px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .heart { fill: #ff4d6d; }
+        #score-board { font-size: 24px; color: #ff4d6d; margin-bottom: 20px; font-weight: bold; }
+        #message { display: none; font-size: 22px; line-height: 1.8; color: #555; padding: 20px; animation: fadeIn 2s forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        button { padding: 10px 20px; font-size: 18px; border: none; background: #ff4d6d; color: white; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="game-ui">
+        <div id="score-board">心動值：<span id="score">0</span> %</div>
+        <div id="target" onclick="clickHeart()">
+            <svg viewBox="0 0 32 32" class="heart"><path d="M16 28.21s-1.49-1.39-4.63-4.28C6.07 18.99 2 15.36 2 10.5 2 6.36 5.36 3 9.5 3c2.49 0 4.74 1.21 6.12 3.08C17.01 4.21 19.26 3 21.5 3 25.64 3 29 6.36 29 10.5c0 4.86-4.07 8.49-9.37 13.43-3.14 2.89-4.63 4.28-4.63 4.28z"/></svg>
+        </div>
+        <p id="hint">點擊愛心來累積心動值！</p>
+    </div>
+
+    <div id="message">
+        <p>測試結果：心動值已滿 100%</p>
+        <p>其實，這款遊戲只有你能通關。</p>
+        <p>因為在我心裡，</p>
+        <p>你就是那個唯一的正確答案。❤️</p>
+        <p><b>(現在，請抬頭看著我...)</b></p>
+    </div>
+</div>
+
+<script>
+    let score = 0;
+    const scoreEl = document.getElementById('score');
+    const target = document.getElementById('target');
+    const gameUI = document.getElementById('game-ui');
+    const message = document.getElementById('message');
+
+    function clickHeart() {
+        score += 10;
+        scoreEl.innerText = score;
+
+        if (score >= 50 && score < 100) {
+            // 讓按鈕開始亂跑，增加「有趣度」
+            target.style.position = 'absolute';
+            target.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+            target.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+            document.getElementById('hint').innerText = "誒！它好像在躲你？快點它！";
+        }
+
+        if (score >= 100) {
+            // 結束遊戲
+            gameUI.style.display = 'none';
+            message.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>

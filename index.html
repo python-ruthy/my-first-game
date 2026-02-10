@@ -3,116 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heartbeat Monitor v3.0</title>
+    <title>Heartbeat Pursuit</title>
     <style>
-        body { margin: 0; background: #000; color: #00ff88; font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; user-select: none; }
-        #game-ui { text-align: center; width: 100%; }
+        body { margin: 0; background: #000; color: #00ff88; font-family: 'Courier New', monospace; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        #start-screen { position: absolute; z-index: 1000; text-align: center; background: #000; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #game-ui { display: none; width: 100%; text-align: center; }
         
-        /* 心電圖容器 */
-        #ecg-container { width: 100%; height: 200px; position: relative; margin: 20px 0; background: rgba(0, 30, 10, 0.1); border-top: 1px solid #111; border-bottom: 1px solid #111; }
-        .ecg-svg { width: 100%; height: 100%; stroke: #00ff88; stroke-width: 3; fill: none; }
+        /* 角色區域 */
+        .stage { display: flex; justify-content: space-around; align-items: center; width: 100%; height: 200px; position: relative; }
+        .character { font-size: 50px; transition: transform 0.2s, opacity 0.2s; position: relative; }
+        .character span { font-size: 14px; display: block; color: #00ff88; margin-top: 10px; }
         
-        #heart-btn { width: 80px; height: 80px; fill: #ff2d55; cursor: pointer; filter: drop-shadow(0 0 15px #ff2d55); transition: transform 0.05s; position: relative; z-index: 10; }
+        /* 心電圖線條 */
+        #ecg-svg { position: absolute; width: 60%; height: 100px; z-index: -1; }
+        #ecg-path { stroke: #00ff88; stroke-width: 4; fill: none; transition: d 0.1s; }
+
+        #message { display: none; text-align: center; padding: 25px; border: 3px solid #00ff88; box-shadow: 0 0 30px #00ff88; background: #000; max-width: 80%; line-height: 1.8; z-index: 2000; }
         
-        #message { display: none; text-align: center; padding: 30px; border: 3px solid #00ff88; box-shadow: 0 0 30px #00ff88; background: #000; max-width: 80%; line-height: 2; z-index: 100; animation: appear 0.5s ease-out; }
-        @keyframes appear { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-        
-        .bpm-display { font-size: 28px; margin-bottom: 10px; font-weight: bold; letter-spacing: 2px; }
-        .flash-bg { animation: flash 0.1s; }
-        @keyframes flash { from { background: #004422; } to { background: #000; } }
+        button { padding: 15px 40px; font-size: 20px; background: #00ff88; color: #000; border: none; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 0 20px #00ff88; }
+        .miss { transform: translateX(50px) rotate(15deg) !important; opacity: 0.5; }
+        .flash { animation: flash-bg 0.1s; }
+        @keyframes flash-bg { from { background: #002211; } to { background: #000; } }
     </style>
 </head>
 <body onclick="handleTap()">
 
-<div id="game-ui">
-    <div class="bpm-display">HEART_RATE: <span id="bpm-val">--</span> BPM</div>
-    
-    <div id="ecg-container">
-        <svg class="ecg-svg" viewBox="0 0 800 200" preserveAspectRatio="none">
-            <path id="ecg-path" d="M0,100 L800,100" />
-        </svg>
-    </div>
+<div id="start-screen">
+    <h1 style="margin-bottom: 40px;">心動節奏測試 v4.0</h1>
+    <button onclick="startGame(event)">點擊開始測試</button>
+    <p style="margin-top: 20px; color: #444;">(請確保手機音量已開啟)</p>
+</div>
 
-    <svg id="heart-btn" viewBox="0 0 32 32">
-        <path d="M16 28.21s-1.49-1.39-4.63-4.28C6.07 18.99 2 15.36 2 10.5 2 6.36 5.36 3 9.5 3c2.49 0 4.74 1.21 6.12 3.08C17.01 4.21 19.26 3 21.5 3 25.64 3 29 6.36 29 10.5c0 4.86-4.07 8.49-9.37 13.43-3.14 2.89-4.63 4.28-4.63 4.28z"/>
-    </svg>
-    <p style="color: #333; margin-top: 30px; font-size: 12px;">[ 請跟隨節奏點擊螢幕進行心跳同步 ]</p>
+<div id="game-ui">
+    <div style="font-size: 20px; margin-bottom: 30px;">心動值: <span id="score">0</span>%</div>
+    
+    <div class="stage">
+        <div id="boy" class="character">👦<span>ME</span></div>
+        
+        <svg id="ecg-svg" viewBox="0 0 400 100" preserveAspectRatio="none">
+            <path id="ecg-path" d="M0,50 L400,50" />
+        </svg>
+
+        <div id="girl" class="character">👧<span>YOU</span></div>
+    </div>
+    
+    <p style="color: #333; margin-top: 50px;">[ 抓住節奏，別讓她躲開 ]</p>
 </div>
 
 <div id="message">
-    <p style="color:#ff2d55; font-weight: bold;">>> 警告：心跳頻率已超出預設範圍</p>
-    <p>這不是遊戲 Bug，是我對你心動的聲音。</p>
-    <p>我的心跳，從見到你那天起就一直很快。</p>
+    <p style="color:#ff2d55; font-size: 24px;">>> 連線成功 <<</p>
+    <p>看來我們的心跳節奏已經完全同步了。</p>
+    <p>我追了你整個網頁，</p>
+    <p>現在，我想在現實中追到你。</p>
     <hr style="border:0.5px solid #222; margin: 20px 0;">
-    <p style="font-size: 20px;"><b>現在測試結束了，<br>你願意當我的女朋友/男朋友嗎？</b></p>
+    <p><b>你願意讓我照顧你，<br>當我的另一半嗎？</b></p>
 </div>
 
-<audio id="bgm" loop preload="auto">
-    <source src="https://assets.mixkit.co/music/preview/mixkit-beautiful-dream-493.mp3" type="audio/mpeg">
+<audio id="bgm" loop>
+    <source src="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3" type="audio/mpeg">
 </audio>
 
 <script>
     let tapCount = 0;
-    let currentBpm = 72;
+    let score = 0;
+    let lastTapTime = 0;
     const audio = document.getElementById('bgm');
     const ecgPath = document.getElementById('ecg-path');
-    const heart = document.getElementById('heart-btn');
-    const bpmVal = document.getElementById('bpm-val');
+    const boy = document.getElementById('boy');
+    const girl = document.getElementById('girl');
 
-    // 繪製心電圖波動的函式
-    function drawECG(intensity) {
-        let baseLine = 100;
-        let p1 = baseLine - (intensity * 0.8);
-        let p2 = baseLine + (intensity * 0.9);
-        let p3 = baseLine - (intensity * 0.3);
-        
-        // 模擬心電圖 PQRST 波形
-        let d = `M0,${baseLine} L100,${baseLine} L110,${baseLine-10} L120,${baseLine} L135,${p1} L150,${p2} L165,${baseLine} L180,${p3} L200,${baseLine} L800,${baseLine}`;
+    function startGame(e) {
+        e.stopPropagation();
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'block';
+        audio.play().catch(err => alert("音訊啟動失敗，請確認手機未靜音"));
+    }
+
+    function drawECG(isGood) {
+        let amp = isGood ? 40 : 10;
+        let d = `M0,50 L50,50 L60,${50-amp} L80,${50+amp} L100,50 L200,50 L210,${50-amp} L230,${50+amp} L250,50 L400,50`;
         ecgPath.setAttribute('d', d);
-        
-        // 0.2秒後恢復直線
-        setTimeout(() => {
-            ecgPath.setAttribute('d', "M0,100 L800,100");
-        }, 200);
+        setTimeout(() => ecgPath.setAttribute('d', "M0,50 L400,50"), 150);
     }
 
     function handleTap() {
+        const now = Date.now();
+        const delta = now - lastTapTime;
+        lastTapTime = now;
+
         tapCount++;
         
-        // 第一次點擊啟動音樂 (因瀏覽器政策，需使用者互動才能放音)
-        if(tapCount === 1) {
-            audio.play().catch(e => console.log("音樂啟動受阻"));
+        // 簡單的節奏判斷 (假設節奏在大約 500ms 左右)
+        let isGood = (delta > 400 && delta < 700) || tapCount === 1;
+
+        if (isGood) {
+            score += 7;
+            girl.classList.remove('miss');
+            boy.style.transform = "scale(1.2) translateX(10px)";
+            girl.style.transform = "scale(1.2) translateX(-10px)";
+            drawECG(true);
+            document.body.classList.add('flash');
+            setTimeout(() => document.body.classList.remove('flash'), 100);
+        } else {
+            // Miss: 女生躲開
+            girl.classList.add('miss');
+            boy.style.transform = "scale(1)";
+            drawECG(false);
         }
 
-        // 畫面閃爍回饋
-        document.body.classList.add('flash-bg');
-        setTimeout(() => document.body.classList.remove('flash-bg'), 80);
-        
-        // 心臟縮放回饋
-        heart.style.transform = "scale(1.4)";
-        setTimeout(() => heart.style.transform = "scale(1)", 80);
+        document.getElementById('score').innerText = Math.min(score, 100);
 
-        // 繪製強烈波動
-        drawECG(80);
-
-        // 更新數據
-        currentBpm += Math.floor(Math.random() * 5) + 3;
-        bpmVal.innerText = currentBpm;
-
-        // 結束點：點擊 18 下後告白
-        if (tapCount >= 18) {
+        if (score >= 100) {
             document.getElementById('game-ui').style.display = 'none';
             document.getElementById('message').style.display = 'block';
-            audio.volume = 0.3; // 告白時降低音量，讓你說話被聽到
+            audio.volume = 0.3;
         }
     }
-
-    // 自動微弱跳動 (營造氛圍)
-    setInterval(() => {
-        if(tapCount > 0 && tapCount < 18) {
-            drawECG(20);
-        }
-    }, 1200);
 </script>
 </body>
 </html>

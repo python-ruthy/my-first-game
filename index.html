@@ -3,56 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heartbeat Test</title>
+    <title>Rhythm Heartbeat</title>
     <style>
         body { margin: 0; background: #000; color: #00ff88; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        #game-ui { text-align: center; }
-        #bpm-display { font-size: 40px; margin-bottom: 20px; }
-        #heart-btn { width: 100px; height: 100px; fill: #ff2d55; cursor: pointer; transition: transform 0.1s; }
-        #message { display: none; text-align: center; padding: 20px; border: 2px solid #00ff88; max-width: 80%; line-height: 1.8; }
-        .hint { color: #444; margin-top: 20px; font-size: 14px; }
+        #game-ui { text-align: center; width: 100%; }
+        
+        /* 心電圖畫布 */
+        #ecg-container { width: 100%; height: 150px; background: rgba(0,20,0,0.2); position: relative; margin: 20px 0; border-top: 1px solid #111; border-bottom: 1px solid #111; overflow: hidden; }
+        .pulse-line { position: absolute; width: 100%; height: 100%; stroke: #00ff88; stroke-width: 3; fill: none; }
+
+        #heart-btn { width: 80px; height: 80px; fill: #ff2d55; cursor: pointer; filter: drop-shadow(0 0 10px #ff2d55); transition: transform 0.1s; z-index: 10; position: relative; }
+        
+        #message { display: none; text-align: center; padding: 25px; border: 2px solid #00ff88; box-shadow: 0 0 20px #00ff88; max-width: 80%; background: #000; z-index: 100; }
+        .bpm-text { font-size: 32px; margin-bottom: 10px; text-shadow: 0 0 10px #00ff88; }
+        .flash { animation: flash-bg 0.1s; }
+        @keyframes flash-bg { from { background: #003311; } to { background: #000; } }
     </style>
 </head>
-<body onclick="playGame()">
+<body onclick="handleTap()">
 
 <div id="game-ui">
-    <div id="bpm-display">BPM: <span id="bpm-val">--</span></div>
+    <div class="bpm-text">SYSTEM STATUS: <span id="bpm-val">SYNCING</span></div>
+    
+    <div id="ecg-container">
+        <svg class="pulse-line" viewBox="0 0 800 200" preserveAspectRatio="none">
+            <path id="ecg-path" d="M0,100 L800,100" />
+        </svg>
+    </div>
+
     <svg id="heart-btn" viewBox="0 0 32 32">
         <path d="M16 28.21s-1.49-1.39-4.63-4.28C6.07 18.99 2 15.36 2 10.5 2 6.36 5.36 3 9.5 3c2.49 0 4.74 1.21 6.12 3.08C17.01 4.21 19.26 3 21.5 3 25.64 3 29 6.36 29 10.5c0 4.86-4.07 8.49-9.37 13.43-3.14 2.89-4.63 4.28-4.63 4.28z"/>
     </svg>
-    <p class="hint">[ 點擊螢幕開始測試 ]</p>
+    <p style="color: #444; margin-top: 20px;">[ 按下節奏點擊螢幕 ]</p>
 </div>
 
 <div id="message">
-    <p style="color:#ff2d55">警告：頻率異常</p>
-    <p>這不是遊戲 Bug</p>
-    <p>是我對你心動的聲音</p>
-    <p><b>你願意跟我在一起嗎？</b></p>
+    <p style="color:#ff2d55">>> ERROR: HEARTBEAT OVERLOAD</p>
+    <p>這不是遊戲測試，這是我的真心。</p>
+    <p>我的心跳節奏，現在只有你能讀懂。</p>
+    <p><b>既然通關了，願意當我的另一半嗎？</b></p>
 </div>
 
-<audio id="bgm" loop>
-    <source src="https://www.chosic.com/wp-content/uploads/2021/04/And-So-It-Begins-Inspired-By-Lofi-Girl.mp3" type="audio/mpeg">
+<audio id="bgm" loop preload="auto">
+    <source src="https://assets.mixkit.co/music/preview/mixkit-house-of-the-rising-sun-lo-fi-954.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-    let clicks = 0;
-    let bpm = 70;
-    function playGame() {
-        clicks++;
-        const audio = document.getElementById('bgm');
-        if(clicks === 1) { audio.play().catch(e => console.log(e)); }
-        
-        document.getElementById('heart-btn').style.transform = "scale(1.2)";
-        setTimeout(() => { document.getElementById('heart-btn').style.transform = "scale(1)"; }, 100);
-        
-        bpm += Math.floor(Math.random() * 5) + 2;
-        document.getElementById('bpm-val').innerText = bpm;
+    let count = 0;
+    let bpm = 75;
+    const audio = document.getElementById('bgm');
+    const path = document.getElementById('ecg-path');
+    const heart = document.getElementById('heart-btn');
 
-        if (clicks > 12) {
+    // 模擬心電圖波動的函式
+    function updateECG(isStrong) {
+        let amp = isStrong ? 80 : 20; // 點擊時波幅變大
+        let d = `M0,100 L100,100 L120,${100-amp} L140,${100+amp} L160,100 L300,100 L320,${100-amp} L340,${100+amp} L360,100 L500,100 L520,${100-amp} L540,${100+amp} L560,100 L700,100 L800,100`;
+        path.setAttribute('d', d);
+        setTimeout(() => {
+            path.setAttribute('d', "M0,100 L800,100"); // 恢復直線
+        }, 150);
+    }
+
+    function handleTap() {
+        count++;
+        
+        // 音樂嘗試播放
+        if(count === 1) {
+            audio.play().catch(e => alert("請再點擊一次以啟動音效！"));
+        }
+
+        // 視覺回饋
+        document.body.classList.add('flash');
+        setTimeout(() => document.body.classList.remove('flash'), 100);
+        heart.style.transform = "scale(1.4)";
+        setTimeout(() => heart.style.transform = "scale(1)", 100);
+        
+        // 觸發心電圖波動
+        updateECG(true);
+
+        // 更新 BPM
+        bpm += 5;
+        document.getElementById('bpm-val').innerText = bpm + " BPM";
+
+        if (count > 15) {
             document.getElementById('game-ui').style.display = 'none';
             document.getElementById('message').style.display = 'block';
         }
     }
+
+    // 自動背景微弱跳動
+    setInterval(() => { if(count > 0 && count <= 15) updateECG(false); }, 1000);
 </script>
 </body>
 </html>

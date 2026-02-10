@@ -2,121 +2,111 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heartbeat Pursuit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Heartbeat Chase</title>
     <style>
-        body { margin: 0; background: #000; color: #00ff88; font-family: 'Courier New', monospace; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        body { margin: 0; background: #000; color: #00ff88; font-family: 'Courier New', monospace; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: manipulation; }
         #start-screen { position: absolute; z-index: 1000; text-align: center; background: #000; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         #game-ui { display: none; width: 100%; text-align: center; }
-        
-        /* 角色區域 */
-        .stage { display: flex; justify-content: space-around; align-items: center; width: 100%; height: 200px; position: relative; }
-        .character { font-size: 50px; transition: transform 0.2s, opacity 0.2s; position: relative; }
-        .character span { font-size: 14px; display: block; color: #00ff88; margin-top: 10px; }
-        
-        /* 心電圖線條 */
-        #ecg-svg { position: absolute; width: 60%; height: 100px; z-index: -1; }
-        #ecg-path { stroke: #00ff88; stroke-width: 4; fill: none; transition: d 0.1s; }
-
-        #message { display: none; text-align: center; padding: 25px; border: 3px solid #00ff88; box-shadow: 0 0 30px #00ff88; background: #000; max-width: 80%; line-height: 1.8; z-index: 2000; }
-        
-        button { padding: 15px 40px; font-size: 20px; background: #00ff88; color: #000; border: none; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 0 20px #00ff88; }
-        .miss { transform: translateX(50px) rotate(15deg) !important; opacity: 0.5; }
-        .flash { animation: flash-bg 0.1s; }
-        @keyframes flash-bg { from { background: #002211; } to { background: #000; } }
+        .stage { display: flex; justify-content: space-around; align-items: center; width: 100%; height: 250px; position: relative; }
+        .character { font-size: 60px; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+        .character span { font-size: 12px; display: block; color: #00ff88; margin-top: 5px; opacity: 0.7; }
+        #ecg-svg { position: absolute; width: 50%; height: 100px; z-index: -1; }
+        #ecg-path { stroke: #00ff88; stroke-width: 4; fill: none; }
+        #message { display: none; text-align: center; padding: 25px; border: 3px solid #00ff88; box-shadow: 0 0 30px #00ff88; background: #000; max-width: 80%; z-index: 2000; }
+        .btn { padding: 15px 40px; font-size: 20px; background: #00ff88; color: #000; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 0 20px rgba(0,255,136,0.5); }
+        .miss-anim { transform: translateX(80px) scale(0.8) rotate(20deg) !important; opacity: 0.3; }
+        .hit-anim { transform: scale(1.2); text-shadow: 0 0 20px #00ff88; }
+        .flash { animation: flash-bg 0.15s; }
+        @keyframes flash-bg { from { background: #003311; } to { background: #000; } }
     </style>
 </head>
-<body onclick="handleTap()">
+<body>
 
 <div id="start-screen">
-    <h1 style="margin-bottom: 40px;">心動節奏測試 v4.0</h1>
-    <button onclick="startGame(event)">點擊開始測試</button>
-    <p style="margin-top: 20px; color: #444;">(請確保手機音量已開啟)</p>
+    <div style="font-size: 50px; margin-bottom: 20px;">💓</div>
+    <h2 style="margin-bottom: 40px; letter-spacing: 5px;">心動節奏測試</h2>
+    <button class="btn" onclick="initGame()">點擊進入測試</button>
 </div>
 
-<div id="game-ui">
-    <div style="font-size: 20px; margin-bottom: 30px;">心動值: <span id="score">0</span>%</div>
-    
+<div id="game-ui" onclick="handleTap()">
+    <div style="font-size: 18px; margin-bottom: 20px; opacity: 0.8;">同步率: <span id="score">0</span>%</div>
     <div class="stage">
         <div id="boy" class="character">👦<span>ME</span></div>
-        
         <svg id="ecg-svg" viewBox="0 0 400 100" preserveAspectRatio="none">
             <path id="ecg-path" d="M0,50 L400,50" />
         </svg>
-
         <div id="girl" class="character">👧<span>YOU</span></div>
     </div>
-    
-    <p style="color: #333; margin-top: 50px;">[ 抓住節奏，別讓她躲開 ]</p>
+    <p id="hint-text" style="color: #444; margin-top: 40px;">[ 聽著節奏，向她傳送心跳 ]</p>
 </div>
 
 <div id="message">
-    <p style="color:#ff2d55; font-size: 24px;">>> 連線成功 <<</p>
-    <p>看來我們的心跳節奏已經完全同步了。</p>
-    <p>我追了你整個網頁，</p>
-    <p>現在，我想在現實中追到你。</p>
-    <hr style="border:0.5px solid #222; margin: 20px 0;">
-    <p><b>你願意讓我照顧你，<br>當我的另一半嗎？</b></p>
+    <p style="color:#ff2d55; font-size: 22px; font-weight: bold;">>> 同步完成 <<</p>
+    <p>原來妳也一直在我的頻率上。</p>
+    <p>這個小遊戲我寫了很久，</p>
+    <p>但想對妳說的話，我準備得更久。</p>
+    <hr style="border:0.5px solid #333; margin: 20px 0;">
+    <p style="font-size: 18px;"><b>我喜歡妳，<br>妳願意和我在一起嗎？</b></p>
 </div>
 
-<audio id="bgm" loop>
-    <source src="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3" type="audio/mpeg">
+<audio id="bgm" loop preload="auto">
+    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-    let tapCount = 0;
     let score = 0;
     let lastTapTime = 0;
     const audio = document.getElementById('bgm');
     const ecgPath = document.getElementById('ecg-path');
     const boy = document.getElementById('boy');
     const girl = document.getElementById('girl');
+    const scoreEl = document.getElementById('score');
 
-    function startGame(e) {
-        e.stopPropagation();
+    function initGame() {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('game-ui').style.display = 'block';
-        audio.play().catch(err => alert("音訊啟動失敗，請確認手機未靜音"));
+        audio.play(); // 由點擊觸發，絕對能放
+        audio.volume = 0.6;
     }
 
-    function drawECG(isGood) {
-        let amp = isGood ? 40 : 10;
-        let d = `M0,50 L50,50 L60,${50-amp} L80,${50+amp} L100,50 L200,50 L210,${50-amp} L230,${50+amp} L250,50 L400,50`;
+    function drawECG(isHit) {
+        let h = isHit ? 45 : 10;
+        let d = `M0,50 L150,50 L160,${50-h} L180,${50+h} L200,50 L220,${50-h} L240,${50+h} L250,50 L400,50`;
         ecgPath.setAttribute('d', d);
-        setTimeout(() => ecgPath.setAttribute('d', "M0,50 L400,50"), 150);
+        ecgPath.style.stroke = isHit ? "#00ff88" : "#ff2d55";
+        setTimeout(() => ecgPath.setAttribute('d', "M0,50 L400,50"), 100);
     }
 
     function handleTap() {
         const now = Date.now();
         const delta = now - lastTapTime;
+        
+        // 節奏判定：點擊間隔在 400-800ms 之間算準
+        let isHit = (delta > 350 && delta < 850);
         lastTapTime = now;
 
-        tapCount++;
-        
-        // 簡單的節奏判斷 (假設節奏在大約 500ms 左右)
-        let isGood = (delta > 400 && delta < 700) || tapCount === 1;
-
-        if (isGood) {
-            score += 7;
-            girl.classList.remove('miss');
-            boy.style.transform = "scale(1.2) translateX(10px)";
-            girl.style.transform = "scale(1.2) translateX(-10px)";
-            drawECG(true);
+        if (isHit || score === 0) {
+            score += 5;
+            girl.classList.remove('miss-anim');
+            boy.style.transform = "scale(1.2) translateX(15px)";
+            girl.style.transform = "scale(1.2) translateX(-15px)";
             document.body.classList.add('flash');
             setTimeout(() => document.body.classList.remove('flash'), 100);
+            drawECG(true);
         } else {
             // Miss: 女生躲開
-            girl.classList.add('miss');
+            girl.classList.add('miss-anim');
             boy.style.transform = "scale(1)";
             drawECG(false);
         }
 
-        document.getElementById('score').innerText = Math.min(score, 100);
+        scoreEl.innerText = Math.min(score, 100);
 
         if (score >= 100) {
             document.getElementById('game-ui').style.display = 'none';
             document.getElementById('message').style.display = 'block';
-            audio.volume = 0.3;
+            audio.animate({volume: 0.2}, 1000);
         }
     }
 </script>

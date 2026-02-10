@@ -3,78 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>心電感應測試 v2.0</title>
+    <title>Heartbeat Doctor - Prototype</title>
     <style>
-        body { margin: 0; background: #000; color: #00ff00; font-family: 'Courier New', Courier, monospace; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        #game-ui { text-align: center; width: 100%; }
-        #ecg-monitor { width: 100%; height: 200px; margin-bottom: 20px; }
-        .ecg-line { stroke: #00ff00; stroke-width: 2; fill: none; stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: dash 3s linear infinite; }
-        @keyframes dash { to { stroke-dashoffset: 0; } }
+        body { margin: 0; background: #000; color: #00ff88; font-family: 'Courier New', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; transition: background 0.1s; }
+        .flash { background: #004422 !important; }
         
-        #heart-btn { width: 80px; height: 80px; fill: #ff0000; cursor: pointer; filter: drop-shadow(0 0 10px #ff0000); animation: pulse 1s infinite; transition: transform 0.1s; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        #game-ui { text-align: center; width: 100%; z-index: 10; }
+        #bpm-display { font-size: 3rem; font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 15px #00ff88; }
         
-        #stats { font-size: 1.5rem; margin-top: 20px; text-shadow: 0 0 5px #00ff00; }
-        #message { display: none; text-align: left; padding: 30px; border: 2px solid #00ff00; box-shadow: 0 0 20px #00ff00; background: rgba(0, 40, 0, 0.8); max-width: 80%; animation: glitch 0.5s; }
-        @keyframes glitch { 0% { transform: translate(2px,0); } 50% { transform: translate(-2px,0); } 100% { transform: translate(0); } }
-        p { margin: 10px 0; line-height: 1.6; }
+        /* 心電圖容器 */
+        #monitor { width: 90%; height: 150px; border-top: 2px solid #333; border-bottom: 2px solid #333; position: relative; display: flex; align-items: center; justify-content: center; background: rgba(0, 20, 0, 0.5); }
+        
+        .line { position: absolute; width: 100%; height: 2px; background: #111; z-index: 1; }
+        
+        #heart-svg { width: 100px; height: 100px; fill: #ff2d55; filter: drop-shadow(0 0 20px #ff2d55); cursor: pointer; z-index: 5; transition: transform 0.05s; }
+        
+        #ecg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+
+        #message { display: none; text-align: center; padding: 40px; background: #000; border: 4px solid #00ff88; box-shadow: 0 0 30px #00ff88; position: absolute; z-index: 100; max-width: 80%; }
+        .glitch-text { animation: pulse-text 1s infinite; font-size: 1.2rem; line-height: 2; }
+        @keyframes pulse-text { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .hint { color: #555; margin-top: 30px; font-size: 0.8rem; letter-spacing: 2px; }
     </style>
 </head>
-<body>
+<body onclick="beat()">
 
 <div id="game-ui">
-    <div id="stats">心跳頻率 (BPM): <span id="bpm">75</span></div>
-    
-    <svg id="ecg-monitor" viewBox="0 0 800 200">
-        <path class="ecg-line" d="M0,100 L100,100 L110,80 L120,120 L130,100 L250,100 L260,40 L275,160 L290,100 L400,100 L410,80 L420,120 L430,100 L600,100 L610,40 L625,160 L640,100 L800,100" />
-    </svg>
-
-    <div id="target" onclick="triggerBeat()">
-        <svg id="heart-btn" viewBox="0 0 32 32">
+    <div id="bpm-display">BPM: <span id="bpm-val">75</span></div>
+    <div id="monitor">
+        <div class="line"></div>
+        <svg id="heart-svg" viewBox="0 0 32 32">
             <path d="M16 28.21s-1.49-1.39-4.63-4.28C6.07 18.99 2 15.36 2 10.5 2 6.36 5.36 3 9.5 3c2.49 0 4.74 1.21 6.12 3.08C17.01 4.21 19.26 3 21.5 3 25.64 3 29 6.36 29 10.5c0 4.86-4.07 8.49-9.37 13.43-3.14 2.89-4.63 4.28-4.63 4.28z"/>
         </svg>
     </div>
-    <p style="margin-top:20px; opacity: 0.7;">[ 系統狀態：偵測中... 請連續點擊心臟確認感應 ]</p>
+    <p class="hint">按節奏點擊螢幕進行同步</p>
 </div>
 
 <div id="message">
-    <p>>>> 警告：心動值溢出！</p>
-    <p>>>> 偵測到唯一匹配對象：你。</p>
-    <hr style="border: 1px solid #00ff00;">
-    <p>其實，這個測試程式是我寫給你的。</p>
-    <p>我的心跳從遇見你開始就一直不太穩定，</p>
-    <p>剛剛你點擊的每一下，都是我對你的心動。</p>
-    <p><b>現在，你可以抬頭給我一個答案嗎？</b></p>
+    <div class="glitch-text">
+        <p>[ 警告：節奏完全失控 ]</p>
+        <p>系統偵測到心跳異常異常...</p>
+        <p>原因：對你的喜愛已超過負荷。</p>
+        <p><b>這款遊戲的最後一關，</b></p>
+        <p><b>是想問你，願意在一起嗎？</b></p>
+    </div>
 </div>
 
+<audio id="bgm" loop>
+    <source src="https://www.chosic.com/wp-content/uploads/2021/07/Rainy-Day.mp3" type="audio/mpeg">
+</audio>
+
 <script>
-    let clicks = 0;
+    let count = 0;
     let bpm = 75;
-    const bpmEl = document.getElementById('bpm');
-    const heart = document.getElementById('heart-btn');
-    const gameUI = document.getElementById('game-ui');
-    const message = document.getElementById('message');
-    const ecgLine = document.querySelector('.ecg-line');
-
-    function triggerBeat() {
-        clicks++;
-        bpm += 5;
-        bpmEl.innerText = bpm;
-        
-        // 視覺反饋：點擊時心臟放大
-        heart.style.transform = "scale(1.3)";
-        setTimeout(() => heart.style.transform = "scale(1)", 100);
-
-        // 心跳越快，動畫越快
-        let speed = Math.max(0.5, 3 - (clicks * 0.2));
-        ecgLine.style.animationDuration = speed + "s";
-        heart.style.animationDuration = speed / 2 + "s";
-
-        if (clicks > 15) {
-            gameUI.style.display = 'none';
-            message.style.display = 'block';
-        }
-    }
-</script>
-</body>
-</html>
+    const body = document.body;
+    const bpmVal = document.getElementById('bpm-val');
+    const heart = document.getElementById('heart-svg');
+    const audio = document.getElementById('bg

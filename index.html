@@ -3,122 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heartbeat Chase</title>
+    <title>Radar Tracking System</title>
     <style>
-        body { margin: 0; background: #000; color: #00ff88; font-family: 'Courier New', monospace; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: manipulation; }
-        #start-screen { position: absolute; z-index: 1000; text-align: center; background: #000; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #game-ui { display: none; width: 100%; text-align: center; }
-        .stage { display: flex; justify-content: space-around; align-items: center; width: 100%; height: 250px; position: relative; padding: 0 20px; box-sizing: border-box; }
-        .character { font-size: 60px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .character span { font-size: 12px; display: block; color: #00ff88; margin-top: 5px; opacity: 0.7; }
-        #ecg-svg { position: absolute; width: 60%; height: 100px; z-index: -1; left: 20%; }
-        #ecg-path { stroke: #00ff88; stroke-width: 4; fill: none; transition: d 0.1s; }
-        #message { display: none; text-align: center; padding: 25px; border: 3px solid #00ff88; box-shadow: 0 0 30px #00ff88; background: #000; max-width: 80%; z-index: 2000; line-height: 1.8; }
-        .btn { padding: 15px 40px; font-size: 20px; background: #00ff88; color: #000; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; }
-        .miss-anim { transform: translateX(100px) scale(0.8); opacity: 0.3; }
-        .flash { animation: flash-bg 0.15s; }
-        @keyframes flash-bg { from { background: #003311; } to { background: #000; } }
-        /* 隱藏 YouTube 播放器 */
-        #player { position: absolute; top: -1000px; left: -1000px; }
+        body { margin: 0; background: #0a0e0a; color: #00ff41; font-family: 'Courier New', monospace; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+        #radar-screen { width: 90vw; height: 250px; border: 2px solid #00ff41; background: #001100; position: relative; box-shadow: inset 0 0 20px #004400; }
+        .grid { position: absolute; width: 100%; height: 100%; background-image: radial-gradient(#004400 1px, transparent 1px); background-size: 20px 20px; }
+        
+        svg { width: 100%; height: 100%; }
+        #target-wave { stroke: #00ff41; stroke-width: 2; fill: none; opacity: 0.4; }
+        #user-wave { stroke: #ffffff; stroke-width: 2; fill: none; filter: drop-shadow(0 0 5px #fff); }
+        
+        #controls { width: 90vw; margin-top: 30px; text-align: center; }
+        input[type=range] { width: 100%; height: 15px; border-radius: 5px; background: #113311; outline: none; -webkit-appearance: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 25px; height: 25px; background: #00ff41; cursor: pointer; border-radius: 50%; }
+
+        #status-panel { width: 90vw; margin-bottom: 10px; display: flex; justify-content: space-between; font-size: 12px; }
+        #overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; }
+        .blink { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     </style>
 </head>
 <body>
 
-<div id="start-screen">
-    <div style="font-size: 50px; margin-bottom: 20px;">💓</div>
-    <h2 style="margin-bottom: 40px;">心動節奏測試</h2>
-    <p style="color: #666; margin-bottom: 20px;">(開始後請點擊畫面來傳送心跳)</p>
-    <button class="btn" onclick="initGame()">點擊開始</button>
+<div id="status-panel">
+    <span>SYSTEM: ACTIVE</span>
+    <span id="level-display">STAGE: 01</span>
+    <span>SYNC: <span id="sync-score">0</span>%</span>
 </div>
 
-<div id="game-ui" onclick="handleTap()">
-    <div style="font-size: 18px; margin-bottom: 20px;">同步率: <span id="score">0</span>%</div>
-    <div class="stage">
-        <div id="boy" class="character">👦<span>ME</span></div>
-        <svg id="ecg-svg" viewBox="0 0 400 100" preserveAspectRatio="none">
-            <path id="ecg-path" d="M0,50 L400,50" />
-        </svg>
-        <div id="girl" class="character">👧<span>YOU</span></div>
+<div id="radar-screen">
+    <div class="grid"></div>
+    <svg>
+        <path id="target-wave"></path>
+        <path id="user-wave"></path>
+    </svg>
+    <div id="overlay">
+        <h2 id="final-title" class="blink">SIGNAL DECODED</h2>
+        <div id="final-msg" style="line-height: 1.8; color: #fff;"></div>
+        <button onclick="location.reload()" style="margin-top:20px; background:#00ff41; border:none; padding:10px 20px;">RESTART</button>
     </div>
 </div>
 
-<div id="message">
-    <p style="color:#ff2d55; font-size: 22px; font-weight: bold;">>> 同步完成 <<</p>
-    <p>這不是 Bug，而是我對妳心跳的共鳴。</p>
-    <p>妳看，我們連節奏都這麼合拍。</p>
-    <hr style="border:0.5px solid #333; margin: 20px 0;">
-    <p style="font-size: 18px;"><b>我喜歡妳，<br>妳願意跟我在一起嗎？</b></p>
+<div id="controls">
+    <p style="margin-bottom: 10px;">ADJUST FREQUENCY TO MATCH SIGNAL</p>
+    <input type="range" id="freq-slider" min="1" max="100" value="50">
+    <button id="next-btn" style="margin-top: 20px; display:none; background:transparent; border:1px solid #00ff41; color:#00ff41; padding:10px 20px;">CONFIRM FREQUENCY</button>
 </div>
 
-<div id="player"></div>
+<audio id="bgm" loop><source src="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3" type="audio/mpeg"></audio>
 
 <script>
-    let player;
-    let score = 0;
-    let lastTapTime = 0;
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
+    const targetPath = document.getElementById('target-wave');
+    const userPath = document.getElementById('user-wave');
+    const slider = document.getElementById('freq-slider');
+    const syncText = document.getElementById('sync-score');
+    const levelText = document.getElementById('level-display');
+    const nextBtn = document.getElementById('next-btn');
+    
+    let stage = 1;
+    let targetFreq = 20;
+    let userFreq = 50;
+    let isLocked = false;
 
-    // 初始化 YouTube 播放器
-    function onYouTubeIframeAPIReady() {
-        player = new YT.Player('player', {
-            height: '0',
-            width: '0',
-            videoId: '4pT799n8Mec', // 這是一首輕鬆的 Lofi 音樂
-            events: {
-                'onReady': (event) => { console.log("Music Ready"); }
-            }
-        });
-    }
-
-    function initGame() {
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('game-ui').style.display = 'block';
-        if (player && player.playVideo) {
-            player.playVideo();
+    // 繪製波形函式
+    function getWavePath(freq, amplitude) {
+        let points = [];
+        for (let x = 0; x <= 400; x += 5) {
+            let y = 100 + Math.sin(x * (freq / 100)) * amplitude;
+            points.push(`${x},${y}`);
         }
+        return `M ${points.join(' L ')}`;
     }
 
-    function drawECG(isHit) {
-        const path = document.getElementById('ecg-path');
-        let h = isHit ? 45 : 5;
-        let d = `M0,50 L100,50 L120,${50-h} L140,${50+h} L160,50 L240,50 L260,${50-h} L280,${50+h} L300,50 L400,50`;
-        path.setAttribute('d', d);
-        path.style.stroke = isHit ? "#00ff88" : "#ff2d55";
-        setTimeout(() => path.setAttribute('d', "M0,50 L400,50"), 150);
-    }
+    function update() {
+        userFreq = slider.value;
+        targetPath.setAttribute('d', getWavePath(targetFreq, stage * 20));
+        userPath.setAttribute('d', getWavePath(userFreq, stage * 20));
 
-    function handleTap() {
-        const now = Date.now();
-        const delta = now - lastTapTime;
-        lastTapTime = now;
+        let diff = Math.abs(userFreq - targetFreq);
+        let sync = Math.max(0, 100 - diff * 2);
+        syncText.innerText = Math.floor(sync);
 
-        // 判定：第一次點擊或間隔在合理範圍
-        let isHit = (delta > 300 && delta < 900) || score === 0;
-
-        if (isHit) {
-            score += 5;
-            document.getElementById('girl').classList.remove('miss-anim');
-            document.getElementById('boy').style.transform = "translateX(20px) scale(1.1)";
-            document.getElementById('girl').style.transform = "translateX(-20px) scale(1.1)";
-            document.body.classList.add('flash');
-            setTimeout(() => document.body.classList.remove('flash'), 100);
-            drawECG(true);
+        if (sync > 95 && !isLocked) {
+            nextBtn.style.display = 'inline-block';
         } else {
-            document.getElementById('girl').classList.add('miss-anim');
-            document.getElementById('boy').style.transform = "translateX(0) scale(1)";
-            drawECG(false);
+            nextBtn.style.display = 'none';
         }
-
-        document.getElementById('score').innerText = Math.min(score, 100);
-
-        if (score >= 100) {
-            document.getElementById('game-ui').style.display = 'none';
-            document.getElementById('message').style.display = 'block';
-            if (player && player.setVolume) player.setVolume(20);
-        }
+        requestAnimationFrame(update);
     }
+
+    nextBtn.onclick = () => {
+        document.getElementById('bgm').play().catch(()=>{});
+        stage++;
+        if (stage === 2) {
+            targetFreq = 75;
+            levelText.innerText = "STAGE: 02";
+            alert("信號源移動，請重新追蹤。");
+        } else if (stage === 3) {
+            targetFreq = 42;
+            levelText.innerText = "STAGE: 03 (CRITICAL)";
+            alert("警告：偵測到強大干擾信號！");
+        } else {
+            showFinal();
+        }
+    };
+
+    function showFinal() {
+        const overlay = document.getElementById('overlay');
+        overlay.style.display = 'flex';
+        document.getElementById('final-msg').innerHTML = `
+            這不是普通的測試。<br><br>
+            第一關，是妳主動靠近我的頻率。<br>
+            第二關，是我努力想要跟上妳的步伐。<br>
+            第三關，是有干擾出現時，我才發現我不能失去妳。<br><br>
+            <b>恭喜，你成功鎖定了我的心。</b><br>
+            所以，要不要試試看，<br>
+            跟這個開發者在一起？
+        `;
+    }
+
+    update();
 </script>
 </body>
 </html>

@@ -3,126 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radar Tracking System</title>
+    <title>Signal Recovery System</title>
     <style>
-        body { margin: 0; background: #0a0e0a; color: #00ff41; font-family: 'Courier New', monospace; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
-        #radar-screen { width: 90vw; height: 250px; border: 2px solid #00ff41; background: #001100; position: relative; box-shadow: inset 0 0 20px #004400; }
-        .grid { position: absolute; width: 100%; height: 100%; background-image: radial-gradient(#004400 1px, transparent 1px); background-size: 20px 20px; }
+        body { margin: 0; background: #050a05; color: #00ff41; font-family: 'Courier New', monospace; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
+        #radar-screen { width: 90vw; height: 280px; border: 2px solid #00ff41; background: #000; position: relative; overflow: hidden; box-shadow: 0 0 20px rgba(0,255,65,0.2); }
+        .grid { position: absolute; width: 200%; height: 100%; background-image: linear-gradient(#002200 1px, transparent 1px), linear-gradient(90deg, #002200 1px, transparent 1px); background-size: 30px 30px; animation: move-grid 10s linear infinite; }
+        @keyframes move-grid { from { transform: translateX(0); } to { transform: translateX(-60px); } }
         
-        svg { width: 100%; height: 100%; }
-        #target-wave { stroke: #00ff41; stroke-width: 2; fill: none; opacity: 0.4; }
-        #user-wave { stroke: #ffffff; stroke-width: 2; fill: none; filter: drop-shadow(0 0 5px #fff); }
+        svg { width: 100%; height: 100%; position: relative; z-index: 5; }
+        #target-wave { stroke: #00ff41; stroke-width: 3; fill: none; transition: stroke 0.3s; }
+        #user-wave { stroke: #ffffff; stroke-width: 2; fill: none; filter: drop-shadow(0 0 8px #fff); }
         
-        #controls { width: 90vw; margin-top: 30px; text-align: center; }
-        input[type=range] { width: 100%; height: 15px; border-radius: 5px; background: #113311; outline: none; -webkit-appearance: none; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 25px; height: 25px; background: #00ff41; cursor: pointer; border-radius: 50%; }
+        #timer-bar { width: 100%; height: 5px; background: #00ff41; position: absolute; top: 0; transition: width 0.1s, background 0.3s; z-index: 10; }
+        
+        #controls { width: 90vw; margin-top: 25px; text-align: center; }
+        input[type=range] { width: 100%; -webkit-appearance: none; background: #112211; height: 40px; border: 1px solid #00ff41; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 40px; height: 40px; background: #00ff41; cursor: pointer; border-radius: 0; }
 
-        #status-panel { width: 90vw; margin-bottom: 10px; display: flex; justify-content: space-between; font-size: 12px; }
-        #overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; }
-        .blink { animation: blink 1s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        #status { width: 90vw; display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; font-weight: bold; }
+        #overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
+        .warning { animation: screen-shake 0.1s infinite; }
+        @keyframes screen-shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(0,0); } }
     </style>
 </head>
 <body>
 
-<div id="status-panel">
-    <span>SYSTEM: ACTIVE</span>
-    <span id="level-display">STAGE: 01</span>
-    <span>SYNC: <span id="sync-score">0</span>%</span>
+<div id="status">
+    <span id="st-text">LINKING...</span>
+    <span id="sync-text">SYNC: 0%</span>
 </div>
 
 <div id="radar-screen">
+    <div id="timer-bar"></div>
     <div class="grid"></div>
     <svg>
         <path id="target-wave"></path>
         <path id="user-wave"></path>
     </svg>
     <div id="overlay">
-        <h2 id="final-title" class="blink">SIGNAL DECODED</h2>
-        <div id="final-msg" style="line-height: 1.8; color: #fff;"></div>
-        <button onclick="location.reload()" style="margin-top:20px; background:#00ff41; border:none; padding:10px 20px;">RESTART</button>
+        <div id="final-msg" style="color: #00ff41; line-height: 2;"></div>
+        <button onclick="location.reload()" id="re-btn" style="margin-top:30px; background:transparent; border:1px solid #00ff41; color:#00ff41; padding:10px 20px;">SYSTEM REBOOT</button>
     </div>
 </div>
 
 <div id="controls">
-    <p style="margin-bottom: 10px;">ADJUST FREQUENCY TO MATCH SIGNAL</p>
-    <input type="range" id="freq-slider" min="1" max="100" value="50">
-    <button id="next-btn" style="margin-top: 20px; display:none; background:transparent; border:1px solid #00ff41; color:#00ff41; padding:10px 20px;">CONFIRM FREQUENCY</button>
+    <input type="range" id="slider" min="1" max="100" value="50">
+    <p id="hint" style="margin-top: 15px; font-size: 12px; letter-spacing: 2px;">HOLD SYNC > 90% TO DECODE</p>
 </div>
 
-<audio id="bgm" loop><source src="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3" type="audio/mpeg"></audio>
+<audio id="bgm" loop><source src="https://assets.mixkit.co/music/preview/mixkit-house-of-the-rising-sun-lo-fi-954.mp3" type="audio/mpeg"></audio>
 
 <script>
+    let stage = 1;
+    let timeLeft = 100;
+    let syncTime = 0;
+    let targetBase = 30;
+    let drift = 0;
+    let isGameOver = false;
+
+    const slider = document.getElementById('slider');
+    const timerBar = document.getElementById('timer-bar');
     const targetPath = document.getElementById('target-wave');
     const userPath = document.getElementById('user-wave');
-    const slider = document.getElementById('freq-slider');
-    const syncText = document.getElementById('sync-score');
-    const levelText = document.getElementById('level-display');
-    const nextBtn = document.getElementById('next-btn');
-    
-    let stage = 1;
-    let targetFreq = 20;
-    let userFreq = 50;
-    let isLocked = false;
+    const syncText = document.getElementById('sync-text');
+    const screen = document.getElementById('radar-screen');
 
-    // 繪製波形函式
-    function getWavePath(freq, amplitude) {
-        let points = [];
-        for (let x = 0; x <= 400; x += 5) {
-            let y = 100 + Math.sin(x * (freq / 100)) * amplitude;
-            points.push(`${x},${y}`);
+    function drawWave(freq, amp) {
+        let pts = [];
+        for (let x = 0; x <= 400; x += 10) {
+            let y = 140 + Math.sin(x * (freq / 80)) * amp;
+            pts.push(`${x},${y}`);
         }
-        return `M ${points.join(' L ')}`;
+        return `M ${pts.join(' L ')}`;
     }
 
-    function update() {
-        userFreq = slider.value;
-        targetPath.setAttribute('d', getWavePath(targetFreq, stage * 20));
-        userPath.setAttribute('d', getWavePath(userFreq, stage * 20));
+    function gameLoop() {
+        if(isGameOver) return;
 
-        let diff = Math.abs(userFreq - targetFreq);
-        let sync = Math.max(0, 100 - diff * 2);
-        syncText.innerText = Math.floor(sync);
+        // 1. 綠線漂移邏輯
+        drift += 0.05;
+        let currentTarget = targetBase + Math.sin(drift) * (stage * 5);
+        targetPath.setAttribute('d', drawWave(currentTarget, 40));
+        userPath.setAttribute('d', drawWave(slider.value, 40));
 
-        if (sync > 95 && !isLocked) {
-            nextBtn.style.display = 'inline-block';
+        // 2. 計算同步率
+        let diff = Math.abs(slider.value - currentTarget);
+        let sync = Math.max(0, 100 - diff * 2.5);
+        syncText.innerText = `SYNC: ${Math.floor(sync)}%`;
+
+        // 3. 時間與顏色邏輯
+        if (sync < 90) {
+            timeLeft -= 0.3; // 沒對準時扣血
+            syncTime = 0;
+            targetPath.style.stroke = timeLeft < 30 ? "#ff0000" : (timeLeft < 60 ? "#ffff00" : "#00ff41");
+            timerBar.style.background = targetPath.style.stroke;
+            if(timeLeft < 30) screen.classList.add('warning');
+            else screen.classList.remove('warning');
         } else {
-            nextBtn.style.display = 'none';
+            timeLeft = Math.min(100, timeLeft + 0.1); // 對準時緩慢回血
+            syncTime += 1;
+            targetPath.style.stroke = "#00ff41";
+            screen.classList.remove('warning');
+            if(syncTime > 100) nextStage(); // 持續對準約 2 秒過關
         }
-        requestAnimationFrame(update);
+
+        timerBar.style.width = timeLeft + "%";
+
+        if (timeLeft <= 0) {
+            isGameOver = true;
+            alert("SIGNAL LOST. SYSTEM REBOOTING...");
+            location.reload();
+        }
+
+        requestAnimationFrame(gameLoop);
     }
 
-    nextBtn.onclick = () => {
-        document.getElementById('bgm').play().catch(()=>{});
+    function nextStage() {
         stage++;
+        syncTime = 0;
         if (stage === 2) {
-            targetFreq = 75;
-            levelText.innerText = "STAGE: 02";
-            alert("信號源移動，請重新追蹤。");
+            targetBase = 70;
+            document.getElementById('st-text').innerText = "PHASE: 02";
         } else if (stage === 3) {
-            targetFreq = 42;
-            levelText.innerText = "STAGE: 03 (CRITICAL)";
-            alert("警告：偵測到強大干擾信號！");
+            targetBase = 45;
+            document.getElementById('st-text').innerText = "PHASE: 03 (FINAL)";
         } else {
             showFinal();
         }
-    };
+    }
 
     function showFinal() {
-        const overlay = document.getElementById('overlay');
-        overlay.style.display = 'flex';
+        isGameOver = true;
+        document.getElementById('overlay').style.display = 'flex';
+        document.getElementById('re-btn').style.display = 'none';
         document.getElementById('final-msg').innerHTML = `
-            這不是普通的測試。<br><br>
-            第一關，是妳主動靠近我的頻率。<br>
-            第二關，是我努力想要跟上妳的步伐。<br>
-            第三關，是有干擾出現時，我才發現我不能失去妳。<br><br>
-            <b>恭喜，你成功鎖定了我的心。</b><br>
-            所以，要不要試試看，<br>
-            跟這個開發者在一起？
+            <b>[ 隱藏信息解碼成功 ]</b><br><br>
+            恭喜你，你的耐心與專注力<br>
+            成功鎖定了這台機器的頻率。<br><br>
+            這是我寫給你的。<br>
+            從我們相遇、到我主動、再到這場心動的拉扯，<br>
+            其實我都跟你一樣緊張。<br><br>
+            <b>既然你追到了我的信號，<br>那你要不要試試看追到我？</b>
         `;
     }
 
-    update();
+    // 啟動點擊
+    document.body.onclick = () => {
+        if(stage === 1 && !isGameOver) {
+            document.getElementById('bgm').play();
+            document.getElementById('st-text').innerText = "PHASE: 01";
+        }
+    };
+
+    gameLoop();
 </script>
 </body>
 </html>

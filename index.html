@@ -3,75 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Signal Recovery System</title>
+    <title>Signal Sync Lab</title>
     <style>
         body { margin: 0; background: #050a05; color: #00ff41; font-family: 'Courier New', monospace; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
-        #radar-screen { width: 90vw; height: 280px; border: 2px solid #00ff41; background: #000; position: relative; overflow: hidden; box-shadow: 0 0 20px rgba(0,255,65,0.2); }
-        .grid { position: absolute; width: 200%; height: 100%; background-image: linear-gradient(#002200 1px, transparent 1px), linear-gradient(90deg, #002200 1px, transparent 1px); background-size: 30px 30px; animation: move-grid 10s linear infinite; }
-        @keyframes move-grid { from { transform: translateX(0); } to { transform: translateX(-60px); } }
-        
+        #radar-screen { width: 90vw; height: 280px; border: 2px solid #00ff41; background: #000; position: relative; overflow: hidden; }
+        .grid { position: absolute; width: 100%; height: 100%; background-image: linear-gradient(#002200 1px, transparent 1px), linear-gradient(90deg, #002200 1px, transparent 1px); background-size: 40px 40px; opacity: 0.5; }
         svg { width: 100%; height: 100%; position: relative; z-index: 5; }
         #target-wave { stroke: #00ff41; stroke-width: 3; fill: none; transition: stroke 0.3s; }
-        #user-wave { stroke: #ffffff; stroke-width: 2; fill: none; filter: drop-shadow(0 0 8px #fff); }
-        
-        #timer-bar { width: 100%; height: 5px; background: #00ff41; position: absolute; top: 0; transition: width 0.1s, background 0.3s; z-index: 10; }
-        
-        #controls { width: 90vw; margin-top: 25px; text-align: center; }
-        input[type=range] { width: 100%; -webkit-appearance: none; background: #112211; height: 40px; border: 1px solid #00ff41; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 40px; height: 40px; background: #00ff41; cursor: pointer; border-radius: 0; }
-
-        #status { width: 90vw; display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; font-weight: bold; }
-        #overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
-        .warning { animation: screen-shake 0.1s infinite; }
-        @keyframes screen-shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(0,0); } }
+        #user-wave { stroke: #ffffff; stroke-width: 2; fill: none; filter: drop-shadow(0 0 5px #fff); }
+        #timer-bar { width: 100%; height: 6px; background: #00ff41; position: absolute; top: 0; z-index: 10; transition: width 0.1s; }
+        #controls { width: 90vw; margin-top: 30px; }
+        input[type=range] { width: 100%; -webkit-appearance: none; background: #112211; height: 50px; border: 1px solid #00ff41; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 50px; height: 50px; background: #00ff41; cursor: pointer; border-radius: 0; }
+        #status { width: 90vw; display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+        #overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 25px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div id="status">
-    <span id="st-text">LINKING...</span>
+    <span id="st-text">SYSTEM: STANDBY</span>
     <span id="sync-text">SYNC: 0%</span>
 </div>
 
 <div id="radar-screen">
     <div id="timer-bar"></div>
     <div class="grid"></div>
-    <svg>
+    <svg viewBox="0 0 400 200">
         <path id="target-wave"></path>
         <path id="user-wave"></path>
     </svg>
     <div id="overlay">
-        <div id="final-msg" style="color: #00ff41; line-height: 2;"></div>
-        <button onclick="location.reload()" id="re-btn" style="margin-top:30px; background:transparent; border:1px solid #00ff41; color:#00ff41; padding:10px 20px;">SYSTEM REBOOT</button>
+        <div id="final-msg" style="color: #00ff41; line-height: 1.8; text-align: left;"></div>
+        <button onclick="location.reload()" id="re-btn" style="margin-top:25px; background:transparent; border:1px solid #00ff41; color:#00ff41; padding:10px 20px; font-family:inherit;">RETRY SYSTEM</button>
     </div>
 </div>
 
 <div id="controls">
-    <input type="range" id="slider" min="1" max="100" value="50">
-    <p id="hint" style="margin-top: 15px; font-size: 12px; letter-spacing: 2px;">HOLD SYNC > 90% TO DECODE</p>
+    <input type="range" id="slider" min="10" max="90" value="50">
+    <p style="text-align:center; font-size:12px; margin-top:15px; letter-spacing:1px; opacity:0.6;">PHASE: <span id="phase-num">01</span> / 03</p>
 </div>
 
-<audio id="bgm" loop><source src="https://assets.mixkit.co/music/preview/mixkit-house-of-the-rising-sun-lo-fi-954.mp3" type="audio/mpeg"></audio>
+<audio id="bgm" loop><source src="https://assets.mixkit.co/music/preview/mixkit-beautiful-dream-493.mp3" type="audio/mpeg"></audio>
 
 <script>
     let stage = 1;
     let timeLeft = 100;
     let syncTime = 0;
-    let targetBase = 30;
     let drift = 0;
     let isGameOver = false;
+    let targetBase = 40;
 
     const slider = document.getElementById('slider');
     const timerBar = document.getElementById('timer-bar');
     const targetPath = document.getElementById('target-wave');
     const userPath = document.getElementById('user-wave');
     const syncText = document.getElementById('sync-text');
-    const screen = document.getElementById('radar-screen');
 
-    function drawWave(freq, amp) {
+    function drawWave(val, amp) {
         let pts = [];
+        // 這裡將分母從 80 改為 160，讓波形更長、更平緩
         for (let x = 0; x <= 400; x += 10) {
-            let y = 140 + Math.sin(x * (freq / 80)) * amp;
+            let y = 100 + Math.sin(x * (val / 160)) * amp;
             pts.push(`${x},${y}`);
         }
         return `M ${pts.join(' L ')}`;
@@ -80,38 +73,35 @@
     function gameLoop() {
         if(isGameOver) return;
 
-        // 1. 綠線漂移邏輯
-        drift += 0.05;
-        let currentTarget = targetBase + Math.sin(drift) * (stage * 5);
-        targetPath.setAttribute('d', drawWave(currentTarget, 40));
-        userPath.setAttribute('d', drawWave(slider.value, 40));
+        // 目標漂移：stage 越高，偏移越明顯，但速度依然控制在可玩範圍
+        drift += 0.02; 
+        let currentTarget = targetBase + Math.sin(drift) * (stage * 4);
+        
+        targetPath.setAttribute('d', drawWave(currentTarget, 50));
+        userPath.setAttribute('d', drawWave(slider.value, 50));
 
-        // 2. 計算同步率
+        // 判定：計算差值。diff 越小代表越準
         let diff = Math.abs(slider.value - currentTarget);
-        let sync = Math.max(0, 100 - diff * 2.5);
+        let sync = Math.max(0, 100 - diff * 4); // 寬鬆一點的判定
         syncText.innerText = `SYNC: ${Math.floor(sync)}%`;
 
-        // 3. 時間與顏色邏輯
-        if (sync < 90) {
-            timeLeft -= 0.3; // 沒對準時扣血
-            syncTime = 0;
-            targetPath.style.stroke = timeLeft < 30 ? "#ff0000" : (timeLeft < 60 ? "#ffff00" : "#00ff41");
-            timerBar.style.background = targetPath.style.stroke;
-            if(timeLeft < 30) screen.classList.add('warning');
-            else screen.classList.remove('warning');
-        } else {
-            timeLeft = Math.min(100, timeLeft + 0.1); // 對準時緩慢回血
-            syncTime += 1;
+        if (sync > 85) {
+            syncTime += 1.5; // 對準時進度增加
+            timeLeft = Math.min(100, timeLeft + 0.2); // 回血
             targetPath.style.stroke = "#00ff41";
-            screen.classList.remove('warning');
-            if(syncTime > 100) nextStage(); // 持續對準約 2 秒過關
+        } else {
+            syncTime = Math.max(0, syncTime - 0.5); // 沒對準進度緩慢倒退
+            timeLeft -= 0.25; // 扣血速度調整
+            targetPath.style.stroke = timeLeft < 40 ? "#ff0000" : "#ffff00";
         }
 
         timerBar.style.width = timeLeft + "%";
+        timerBar.style.background = targetPath.style.stroke;
 
+        if (syncTime > 100) nextStage();
         if (timeLeft <= 0) {
             isGameOver = true;
-            alert("SIGNAL LOST. SYSTEM REBOOTING...");
+            alert("連接失敗：信號已遺失。系統重啟中...");
             location.reload();
         }
 
@@ -122,11 +112,11 @@
         stage++;
         syncTime = 0;
         if (stage === 2) {
-            targetBase = 70;
-            document.getElementById('st-text').innerText = "PHASE: 02";
+            targetBase = 65;
+            document.getElementById('phase-num').innerText = "02";
         } else if (stage === 3) {
-            targetBase = 45;
-            document.getElementById('st-text').innerText = "PHASE: 03 (FINAL)";
+            targetBase = 30;
+            document.getElementById('phase-num').innerText = "03";
         } else {
             showFinal();
         }
@@ -137,21 +127,21 @@
         document.getElementById('overlay').style.display = 'flex';
         document.getElementById('re-btn').style.display = 'none';
         document.getElementById('final-msg').innerHTML = `
-            <b>[ 隱藏信息解碼成功 ]</b><br><br>
-            恭喜你，你的耐心與專注力<br>
-            成功鎖定了這台機器的頻率。<br><br>
-            這是我寫給你的。<br>
-            從我們相遇、到我主動、再到這場心動的拉扯，<br>
-            其實我都跟你一樣緊張。<br><br>
-            <b>既然你追到了我的信號，<br>那你要不要試試看追到我？</b>
+            <b>[ 解析完畢：隱藏數據已解鎖 ]</b><br><br>
+            這段頻率，是我試探你的每一次心跳。<br>
+            從你主動跟我說話的那天起，<br>
+            我就一直在調整自己的波段，想與你同步。<br><br>
+            我們拉扯過、猶豫過，<br>
+            但我發現，不管環境有多少干擾，<br>
+            我最想鎖定的目標，始終只有你。<br><br>
+            <b>既然你成功同步了我的心，<br>那...你要不要考慮，正式成為我的另一半？</b>
         `;
     }
 
-    // 啟動點擊
     document.body.onclick = () => {
-        if(stage === 1 && !isGameOver) {
+        if(stage === 1) {
             document.getElementById('bgm').play();
-            document.getElementById('st-text').innerText = "PHASE: 01";
+            document.getElementById('st-text').innerText = "SYSTEM: TRACKING";
         }
     };
 
